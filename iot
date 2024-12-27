@@ -1,0 +1,131 @@
+EXP-7
+------------
+import socket
+localip = "127.0.0.1"
+lport=20001
+buffer=1024
+
+msgserver="hello from server"
+bytetosend=str.encode(msgserver)
+UDPserversock=socket.socket(family=socket.AF_INET,type=socket.SOCK_DGRAM)
+UDPserversock.bind((localip,lport))
+while True:
+    byteaddpair=UDPserversock.recv(buffer)
+    message=byteaddpair[0]
+    address=byteaddpair[1]
+    clientMsg = "Message from Client: {}".format(message)
+    clientIP = "Client IP Address: {}".format(address)
+    print(clientMsg)
+    print(clientIP)
+    UDPserversock.sendto(bytetosend,address)
+
+
+import socket
+msgFromClient = "Hello UDP Server"
+bufferSize= 1024
+bytesToSend = str.encode(msgFromClient)
+serverAddressPort = ("127.0.0.1",20001)
+UDPClientSocket=socket.socket(family=socket.AF_INET,type=socket.SOCK_DGRAM)
+UDPClientSocket.sendto(bytesToSend, serverAddressPort)
+msgFromServer = UDPClientSocket.recvfrom(bufferSize)
+msg = "Message from Server {}".format(msgFromServer[0])
+print(msg)
+
+
+THINKSPEAK
+-----------------
+import http.client
+import urllib
+import time
+import board
+import adafruit_dht
+
+# ThingSpeak API key
+key = '6FKNYXRPHUFCICNY'
+
+# Initialize the DHT11 sensor
+sensor = adafruit_dht.DHT11(board.D4)
+
+def send_to_thingspeak():
+    while True:
+        try:
+            # Read temperature and humidity from the DHT11 sensor
+            temp = sensor.temperature
+            humidity = sensor.humidity
+
+            # Prepare the data to send
+            params = urllib.parse.urlencode({
+                'field1': temp,
+                'field2': humidity,
+                'key': key
+            })
+
+            headers = {
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Accept": "text/plain"
+            }
+
+            # Create an HTTP connection to ThingSpeak
+            conn = http.client.HTTPConnection("api.thingspeak.com", 80)
+
+            # Send the data to ThingSpeak
+            try:
+                conn.request("POST", "/update", params, headers)
+                response = conn.getresponse()
+
+                # Print the data and response
+                print(f"Temp: {temp}°C, Humidity: {humidity}%")
+                print(f"Response: {response.status}, {response.reason}")
+                conn.close()
+
+            except Exception as e:
+                print("Connection failed:", e)
+                break
+
+        except Exception as e:
+            print("Sensor read failed:", e)
+
+        time.sleep(20)  # Wait for 20 seconds before sending next data
+
+if __name__ == "__main__":
+    send_to_thingspeak()
+
+SQL
+-------
+import time
+import datetime
+import MySQLdb
+import RPi.GPIO as GPIO
+
+# Disable warnings and clean up GPIO pins
+GPIO.setwarnings(False)
+GPIO.cleanup()
+
+# Pin configuration
+pin = 4
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(pin, GPIO.IN)
+
+# Database connection
+db = MySQLdb.connect(
+    host="localhost",
+    user="exampleuser",
+    passwd="pimylifeup",
+    db="exampledb"
+)
+cur = db.cursor()
+
+# Main loop to collect data
+while True:  # Collects data indefinitely
+    degrees = GPIO.input(pin)  # Reads data from the IR sensor
+    timenow = datetime.datetime.utcnow()  # Gets the current UTC time
+    
+    print(degrees)  # Prints the sensor's state (1 or 0)
+
+    # Execute the SQL command to insert data into the database
+    cur.execute('INSERT INTO Sensorstats(date_time, irsensorstat) VALUES(%s, %s);', (timenow, degrees))
+    db.commit()  # Save changes to the database
+
+    time.sleep(1)  # Waits for 1 second before collecting the next data point
+
+
